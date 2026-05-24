@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header no-print">
+    <h1>Audit Log</h1>
+    <p>Regjistri i veprimeve — shihni kush, kur dhe çfarë bëri.</p>
+</div>
+
+<div class="card">
+    <div class="meta small">Gjithsej: {{ total }} ngjarje</div>
+</div>
+
+<div class="audit-list">
+    {% for e in logs %}
+    <div class="audit-card">
+        <div class="audit-top">
+            <div class="audit-time">{{ e.timestamp.strftime('%Y-%m-%d %H:%M:%S') if e.timestamp else '-' }}</div>
+            <div class="audit-user">{{ e.user or '-' }}</div>
+        </div>
+        <div class="audit-main">
+            <div class="audit-action {{ e.action|lower }}">{{ e.action }}</div>
+            <div class="audit-object">{{ e.object_type }} {% if e.object_id %} — {{ e.object_id }}{% endif %}</div>
+            <div class="audit-details">{{ e.details }}</div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">Nuk ka ngjarje të regjistruara ende.</div>
+    {% endfor %}
+</div>
+
+<div class="pagination no-print">
+    {% if has_prev %}
+    <a class="btn btn-link" href="{{ url_for('audit', page=page-1, per_page=per_page) }}">« Më parë</a>
+    {% endif %}
+    {% if has_next %}
+    <a class="btn btn-link" href="{{ url_for('audit', page=page+1, per_page=per_page) }}">Më shumë »</a>
+    {% endif %}
+</div>
+
+{% endblock %}

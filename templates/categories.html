@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header no-print">
+    <h1>Menaxhimi i Kategorive të Materialeve</h1>
+    <p>Shto materiale të reja për secilin repart.</p>
+</div>
+
+<div class="card no-print">
+    {% if is_admin %}
+    <form method="POST" class="add-form">
+        <div class="form-group">
+            <label>Reparti:</label>
+            <select name="department_id" required>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Emri i Materialit (psh. Iverica Koton):</label>
+            <input type="text" name="name" required placeholder="Shkruaj materialin...">
+        </div>
+        <div class="form-group">
+            <label>Njësia Matëse:</label>
+            <select name="unit" required>
+                <option value="">-- Zgjidh njësinë --</option>
+                <option value="copë">Copë</option>
+                <option value="pakete">Pakete</option>
+                <option value="m">m</option>
+                <option value="m2">m2</option>
+                <option value="m3">m3</option>
+                <option value="liter">liter</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Shto Materialin</button>
+    </form>
+    {% else %}
+    <div class="card no-print"><p>Vetëm admin mund të shtojë materiale.</p></div>
+    {% endif %}
+</div>
+
+<h2 class="section-title">Lista e Materialeve të Regjistruara</h2>
+<div class="list-summary">
+    <span>{{ materials|length }} materiale të regjistruara</span>
+    <button type="button" class="btn btn-link toggle-list" data-target="#materials-list">Trego më shumë</button>
+</div>
+<div id="materials-list" class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Materiali</th>
+                <th>Reparti</th>
+                <th>Njësia Matëse</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mat in materials %}
+            <tr class="collapsible-row" data-index="{{ loop.index }}">
+                <td>
+                    <strong>{{ mat.name }}</strong>
+                    {% if is_super %}
+                    <a href="{{ url_for('delete_material', mat_id=mat.id) }}" class="btn-icon delete-btn" data-name="{{ mat.name }}" title="Fshi materialin">🗑</a>
+                    {% endif %}
+                    {% if mat.created_by or mat.created_at %}
+                    <div class="meta small">Krijuar nga {{ mat.created_by or '-' }}{% if mat.created_at %} më {{ mat.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
+                    {% if mat.updated_by or mat.updated_at %}
+                    <div class="meta smaller">Përditësuar nga {{ mat.updated_by or '-' }}{% if mat.updated_at %} më {{ mat.updated_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
+                    {% endif %}
+                    {% endif %}
+                </td>
+                <td><span class="badge">{{ mat.department.name }}</span></td>
+                <td>{{ mat.unit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="section-title">Lista e Klientëve</h2>
+<div class="card no-print">
+    {% if is_admin %}
+    <form method="POST" class="add-form">
+        <div class="form-group">
+            <label>Emri i Klientit:</label>
+            <input type="text" name="client_name" placeholder="Emri i klientit...">
+        </div>
+        <div class="form-group">
+            <label>Kategoria (opsionale):</label>
+            <input type="text" name="client_category" placeholder="psh. Studio, Individ, Kompani...">
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Shto Klientin</button>
+    </form>
+    {% else %}
+    <div class="card no-print"><p>Vetëm admin mund të shtojë klientë.</p></div>
+    {% endif %}
+</div>
+
+<div class="list-summary">
+    <span>{{ clients|length }} klientë të regjistruar</span>
+    <button type="button" class="btn btn-link toggle-list" data-target="#clients-list">Trego më shumë</button>
+</div>
+<div id="clients-list" class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Emri Klientit</th>
+                <th>Kategoria</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in clients %}
+            <tr class="collapsible-row" data-index="{{ loop.index }}">
+                <td>
+                    <strong>{{ c.name }}</strong>
+                    {% if is_super %}
+                    <a href="{{ url_for('delete_client', client_id=c.id) }}" class="btn-icon delete-btn" data-name="{{ c.name }}" title="Fshi klientin">🗑</a>
+                    {% endif %}
+                    {% if c.created_by or c.created_at %}
+                    <div class="meta small">Krijuar nga {{ c.created_by or '-' }}{% if c.created_at %} më {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
+                    {% if c.updated_by or c.updated_at %}
+                    <div class="meta smaller">Përditësuar nga {{ c.updated_by or '-' }}{% if c.updated_at %} më {{ c.updated_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
+                    {% endif %}
+                    {% endif %}
+                </td>
+                <td>{{ c.category or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="2">Nuk ka klientë të regjistruar.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    function setupCollapsible(targetSelector, initial, step){
+        const container = document.querySelector(targetSelector);
+        if(!container) return;
+        const rows = container.querySelectorAll('tbody tr.collapsible-row');
+        const total = rows.length;
+        let visible = Math.min(initial, total);
+
+        function updateRows(){
+            rows.forEach((r, i) => { r.style.display = (i < visible) ? '' : 'none'; });
+            const btn = document.querySelector('[data-target="' + targetSelector + '"]');
+            if(!btn) return;
+            if(visible >= total) btn.textContent = 'Trego më pak'; else btn.textContent = 'Trego më shumë';
+        }
+
+        updateRows();
+
+        const btn = document.querySelector('[data-target="' + targetSelector + '"]');
+        if(btn){
+            btn.addEventListener('click', function(){
+                if(visible >= total) {
+                    visible = initial; // collapse
+                } else {
+                    visible = Math.min(visible + step, total); // show more
+                }
+                updateRows();
+            });
+        }
+    }
+
+    setupCollapsible('#materials-list', 3, 10);
+    setupCollapsible('#clients-list', 3, 10);
+
+    // delete confirmation
+    document.querySelectorAll('.delete-btn').forEach(function(btn){
+        btn.addEventListener('click', function(e){
+            e.preventDefault();
+            var name = btn.getAttribute('data-name') || 'artikullin';
+            var ok = confirm('A jeni i sigurt ta fshini ' + name + ' nga lista?');
+            if(ok){
+                window.location.href = btn.href;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

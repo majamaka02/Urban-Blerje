@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menaxhimi i Stokut</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Side Panel -->
+        <nav class="sidebar no-print">
+            <div class="sidebar-header">
+                <h2><i class="fa-solid fa-couch"></i> Mobileri Stoku</h2>
+            </div>
+        <div class="sidebar-user no-print">
+            {% if current_user %}
+            <div class="user-info">
+                <strong>{{ current_user }}</strong>
+                {% if is_super %}<span class="badge">Superadmin</span>{% elif is_admin %}<span class="badge">Admin</span>{% endif %}
+            </div>
+            <div class="user-actions">
+                {% if is_admin %}<a href="{{ url_for('admin_panel') }}">Paneli Admin</a> | {% endif %}
+                <a href="{{ url_for('logout') }}">Dalë</a>
+            </div>
+            {% else %}
+            <div class="user-actions">
+                <a href="{{ url_for('login') }}">Hyrje</a>
+            </div>
+            {% endif %}
+        </div>
+            
+            <ul class="nav-links">
+                <li>
+                    <a href="{{ url_for('categories') }}"><i class="fa-solid fa-layer-group"></i> Krijo Kategoritë</a>
+                </li>
+                <li>
+                    <a href="{{ url_for('audit') }}"><i class="fa-solid fa-list"></i> Audit Log</a>
+                </li>
+                <li class="nav-divider">Repartet</li>
+                {% for dept in departments %}
+                <li>
+                    <a href="{{ url_for('department', dept_id=dept.id) }}">
+                        <i class="fa-solid fa-folder"></i> {{ dept.name }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, msg in messages %}
+                <div class="flash {{ category }}">{{ msg }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

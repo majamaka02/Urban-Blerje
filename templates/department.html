@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+    <div class="header-titles">
+        <h1>Reparti: {{ department.name }}</h1>
+        <p class="no-print">Shto porositë dhe menaxho blerjet e materialit.</p>
+    </div>
+    <div class="export-toolbar no-print">
+        <a class="btn btn-success" href="{{ url_for('export_department_pdf', dept_id=department.id, mode='summary', client_id=selected_client_id|default('')) }}"><i class="fa-solid fa-file-pdf"></i> PDF (Përmbledhje)</a>
+        <a class="btn btn-primary" href="{{ url_for('export_department_csv', dept_id=department.id, mode='summary', client_id=selected_client_id|default('')) }}">CSV (Përmbledhje)</a>
+        <a class="btn btn-primary" href="{{ url_for('export_department_csv', dept_id=department.id, mode='items', client_id=selected_client_id|default('')) }}">CSV (Lista)</a>
+        <a class="btn btn-primary" href="{{ url_for('export_department_xlsx', dept_id=department.id, mode='items', client_id=selected_client_id|default('')) }}">Excel (Lista)</a>
+    </div>
+</div>
+
+<div class="card no-print">
+    {% if is_admin %}
+    <form method="POST" class="add-form inline-form">
+        <div class="form-group">
+            <label>Klienti (zgjidh ose shtyp të ri):</label>
+            <select name="client_id">
+                <option value="">-- Zgjidh klientin --</option>
+                {% for c in clients %}
+                <option value="{{ c.id }}">{{ c.name }}{% if c.category %} ({{ c.category }}){% endif %}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="client_name" placeholder="Ose shtyp emrin e klientit...">
+        </div>
+        <div class="form-group">
+            <label>Materiali (Zgjidh):</label>
+            <select name="material_id" required>
+                {% for mat in department.materials %}
+                <option value="{{ mat.id }}">{{ mat.name }} ({{ mat.unit }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if department.name in ['Shtofi', 'Ngjyra', 'Druri', 'Iverica'] %}
+        <div class="form-group">
+            <label>Shënim (emri shtofit / ngjyrës):</label>
+            <input type="text" name="note" placeholder="p.sh. New Arsenal #19">
+        </div>
+        {% endif %}
+        <div class="form-group quantity-group">
+            <label>Sasia:</label>
+            <input type="number" step="0.01" name="quantity" required placeholder="0.0">
+        </div>
+        <button type="submit" class="btn btn-primary" style="align-self: flex-end;"><i class="fa-solid fa-cart-plus"></i> Shto në Listë</button>
+    </form>
+    {% else %}
+    <div class="card no-print"><p>Vetëm admin mund të shtojë porosi.</p></div>
+    {% endif %}
+</div>
+
+<!-- Filtrim sipas klientit -->
+<div class="card no-print" style="margin-top:10px;">
+    <form method="GET" class="filter-form">
+        <div class="form-group">
+            <label>Filtro sipas klientit:</label>
+            <select name="client_id" onchange="this.form.submit()">
+                <option value="">Të gjitha</option>
+                {% for c in clients %}
+                <option value="{{ c.id }}" {% if selected_client_id == (c.id|string) %}selected{% endif %}>{{ c.name }}{% if c.category %} ({{ c.category }}){% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                        {% if is_admin %}
+                        <th class="no-print">Statusi</th>
+                        {% endif %}
+                <th>Klienti</th>
+                <th>Materiali që mungon</th>
+                <th>Shënim</th>
+                <th>Sasia</th>
+                        {% if is_admin %}
+                        <th class="no-print">Veprime</th>
+                        {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr class="{% if item.is_bought %}bought-row{% endif %}">
+                        {% if is_admin %}
+                        <td class="no-print">
+                            <a href="{{ url_for('toggle_item', item_id=item.id) }}" class="tick-btn {% if item.is_bought %}active{% endif %}">
+                                <i class="fa-solid fa-check"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                <td>
+                    {{ item.client_name }}
+                    {% if item.created_by or item.created_at %}
+                    <div class="meta small">{{ item.created_by or '-' }}{% if item.created_at %} - {{ item.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
+                    {% if item.updated_by or item.updated_at %}
+                    <div class="meta smaller">Përditësuar nga {{ item.updated_by or '-' }}{% if item.updated_at %} - {{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
+                    {% endif %}
+                    {% endif %}
+                </td>
+                <td><strong>{{ item.material.name }}</strong></td>
+                <td>{{ item.note or '-' }}</td>
+                <td>{{ item.quantity }} {{ item.material.unit }}</td>
+                        {% if is_admin %}
+                        <td class="no-print">
+                            <a href="{{ url_for('delete_item', item_id=item.id) }}" class="btn-icon delete"><i class="fa-solid fa-trash"></i></a>
+                        </td>
+                        {% endif %}
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-ailing:center">Nuk ka asnjë material për tu blerë.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Tabela e Permbledhjes - Shfaqet mire ne PDF -->
+<div class="summary-section">
+    <h2>Përmbledhje Totale për Blerje</h2>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Materiali</th>
+                <th>Shënim</th>
+                <th>Sasia Totale që duhet blerë</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in summary %}
+            <tr>
+                <td><strong>{{ entry.mat_name }}</strong></td>
+                <td>{{ entry.note or '-' }}</td>
+                <td class="total-highlight">{{ entry.qty }} {{ entry.unit }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">Çdo gjë është blerë!</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
