@@ -18,7 +18,15 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-app = Flask(__name__)
+BASE_DIR = Path(__file__).resolve().parent
+
+# Ensure Flask finds templates/static regardless of working directory
+app = Flask(
+    __name__,
+    template_folder=str(BASE_DIR / 'templates'),
+    static_folder=str(BASE_DIR / 'static'),
+    static_url_path='/static'
+)
 
 # ===== SECURITY CONFIGURATION =====
 # Use environment variables for sensitive config
@@ -29,8 +37,23 @@ FLASK_ENV = os.getenv('FLASK_ENV', 'production')
 # CSRF Protection
 csrf = CSRFProtect(app)
 
-# Konfigurimi i Databazes SQLite
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///stoku.db')
+# Konfigurimi i Databazes - normalize DATABASE_URL to avoid SQLAlchemy parse errors
+# Read DATABASE_URL and provide a safe fallback to SQLite for development
+db_url = os.getenv('DATABASE_URL', '').strip()
+if not db_url:
+    # optional secondary env var used in some setups
+    db_url = os.getenv('SQLITE_URL', '') or 'sqlite:///stoku.db'
+
+# Normalize older provider scheme
+if db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+
+# Detect obvious placeholder values and fall back to sqlite (to avoid import-time crash)
+if '<' in db_url or '>' in db_url or 'your_password' in db_url:
+    print('WARNING: DATABASE_URL contains placeholder values; falling back to SQLite. Set a valid DATABASE_URL in your environment.')
+    db_url = 'sqlite:///stoku.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SESSION SECURITY - Adjust for development vs production
