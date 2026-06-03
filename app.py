@@ -238,7 +238,7 @@ class Client(db.Model):
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.Text, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_super = db.Column(db.Boolean, default=False)
 
@@ -361,6 +361,15 @@ with app.app_context():
         if 'is_super' not in user_cols:
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE {User.__table__.name} ADD COLUMN is_super BOOLEAN DEFAULT 0"))
+    except Exception:
+        pass
+
+    # Werkzeug's default password hashes are longer than 128 chars.
+    # Older deployments may have created this as VARCHAR(128), which breaks logins/resets on Postgres.
+    try:
+        if db.engine.url.get_backend_name().startswith('postgresql'):
+            with db.engine.begin() as conn:
+                conn.execute(text('ALTER TABLE "user" ALTER COLUMN password_hash TYPE TEXT'))
     except Exception:
         pass
 
