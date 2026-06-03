@@ -28,6 +28,21 @@ app = Flask(
     static_url_path='/static'
 )
 
+# Debug: print template/static paths and list templates at startup (appears in Render logs)
+try:
+    print('BASE_DIR =', str(BASE_DIR))
+    print('app.template_folder =', app.template_folder)
+    jpaths = getattr(app.jinja_loader, 'searchpath', None)
+    print('jinja_loader.searchpath =', jpaths)
+    tpl_dir = BASE_DIR / 'templates'
+    if tpl_dir.exists():
+        files = sorted([p.name for p in tpl_dir.iterdir() if p.is_file()])
+        print('templates files:', files[:200])
+    else:
+        print('templates directory does not exist at', str(tpl_dir))
+except Exception as _e:
+    print('Error while listing templates:', _e)
+
 # ===== SECURITY CONFIGURATION =====
 # Use environment variables for sensitive config
 app.secret_key = os.getenv('SECRET_KEY', 'dev_secret_change_me_in_production')
