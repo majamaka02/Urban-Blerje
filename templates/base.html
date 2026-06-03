@@ -2,17 +2,51 @@
 <html lang="sq">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Stoku">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="description" content="Aplikacion për menaxhimin e stokut dhe porositeve të materialeve">
+    
     <title>Menaxhimi i Stokut</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Safe area for notch/home indicator */
+        body { padding-top: max(12px, env(safe-area-inset-top)); }
+        @supports (padding: max(0px)) {
+            body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
+        <!-- Sidebar Backdrop (for mobile) -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+        
+        <!-- Hamburger Menu Button (mobile only) -->
+        <button class="hamburger-btn no-print" id="hamburgerBtn" aria-label="Menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        
         <!-- Side Panel -->
-        <nav class="sidebar no-print">
+        <nav class="sidebar no-print" id="sidebar">
             <div class="sidebar-header">
-                <h2><i class="fa-solid fa-couch"></i> Mobileri Stoku</h2>
+                <a href="{{ url_for('categories') }}" style="display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: white;">
+                    <img src="{{ url_for('static', filename='icon-192.png') }}" alt="Logo" style="width: 40px; height: 40px; border-radius: 8px;">
+                    <h2 style="margin: 0; font-size: 16px;">Stoku</h2>
+                </a>
+                <button class="close-sidebar-btn no-print" id="closeSidebarBtn" aria-label="Close menu" style="display: none;">
+                    <i class="fa-solid fa-times"></i>
+                </button>
             </div>
         <div class="sidebar-user no-print">
             {% if current_user %}
@@ -37,6 +71,9 @@
                 </li>
                 <li>
                     <a href="{{ url_for('audit') }}"><i class="fa-solid fa-list"></i> Audit Log</a>
+                </li>
+                <li>
+                    <a href="{{ url_for('completed_clients') }}"><i class="fa-solid fa-check-circle"></i> Klientet e perfunduar</a>
                 </li>
                 <li class="nav-divider">Repartet</li>
                 {% for dept in departments %}
@@ -64,5 +101,253 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <!-- PWA Service Worker & Install Prompt -->
+    <script>
+        // ===== MOBILE MENU TOGGLE =====
+        // Handle hamburger menu for mobile navigation
+        (function() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+            
+            // Check if we're on mobile
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            // Toggle sidebar
+            function toggleSidebar() {
+                if (isMobile()) {
+                    sidebar.classList.toggle('mobile-open');
+                    sidebarBackdrop.classList.toggle('show');
+                    closeSidebarBtn.style.display = sidebar.classList.contains('mobile-open') ? 'block' : 'none';
+                }
+            }
+            
+            // Close sidebar
+            function closeSidebar() {
+                sidebar.classList.remove('mobile-open');
+                sidebarBackdrop.classList.remove('show');
+                closeSidebarBtn.style.display = 'none';
+            }
+            
+            // Event listeners
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', toggleSidebar);
+            }
+            
+            if (closeSidebarBtn) {
+                closeSidebarBtn.addEventListener('click', closeSidebar);
+            }
+            
+            if (sidebarBackdrop) {
+                sidebarBackdrop.addEventListener('click', closeSidebar);
+            }
+            
+            // Close sidebar when a link is clicked
+            const navLinks = sidebar.querySelectorAll('.nav-links a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', closeSidebar);
+            });
+            
+            // Hide hamburger button on desktop
+            function updateMenuVisibility() {
+                if (isMobile()) {
+                    hamburgerBtn.style.display = 'flex';
+                } else {
+                    hamburgerBtn.style.display = 'none';
+                    closeSidebar(); // Close if resizing to desktop
+                }
+            }
+            
+            // Update on resize
+            window.addEventListener('resize', updateMenuVisibility);
+            updateMenuVisibility(); // Initial check
+        })();
+        
+        // ===== IMMEDIATE AUTHENTICATION CHECK =====
+        // Check authentication IMMEDIATELY on page load before showing content
+        (function() {
+            // Skip auth check for login page
+            if (window.location.pathname === '/login') {
+                document.documentElement.style.visibility = 'visible';
+                return;
+            }
+            
+            // Hide content until authentication is verified
+            document.documentElement.style.visibility = 'hidden';
+            
+            // Check if user is authenticated
+            fetch('/check-session', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Not authenticated - redirect to login
+                    console.warn('Not authenticated - redirecting to login');
+                    window.location.href = '/login';
+                    return;
+                }
+                // Show content if authenticated
+                document.documentElement.style.visibility = 'visible';
+            })
+            .catch(error => {
+                console.error('Auth check error:', error);
+                // Show content anyway on error (server might be down)
+                document.documentElement.style.visibility = 'visible';
+            });
+        })();
+        
+        // ===== SESSION MANAGEMENT FOR PWA =====
+        // Check session validity periodically (every 5 minutes)
+        function checkSessionValidity() {
+            fetch('/check-session', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Session expired - logout user
+                    console.warn('Session expired, redirecting to login');
+                    window.location.href = '/logout';
+                }
+                return response.json();
+            })
+            .catch(error => {
+                console.log('Session check error:', error);
+            });
+        }
+        
+        // Check session every 5 minutes
+        setInterval(checkSessionValidity, 5 * 60 * 1000);
+        
+        // Check on app visibility change (PWA app switch)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // App came to foreground - check session
+                checkSessionValidity();
+            }
+        });
+        
+        // Clear session on page unload (when closing app)
+        window.addEventListener('beforeunload', () => {
+            // This will trigger logout via PWA app lifecycle
+            console.log('App closing - session will be cleared by server');
+        });
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                        
+                        // Listen for service worker messages
+                        navigator.serviceWorker.addEventListener('message', (event) => {
+                            if (event.data.type === 'SESSION_EXPIRED') {
+                                console.warn('Service Worker: Session expired');
+                                window.location.href = '/logout';
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallPrompt();
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('App installed');
+            deferredPrompt = null;
+        });
+
+        function showInstallPrompt() {
+            const promptDiv = document.createElement('div');
+            promptDiv.id = 'pwa-install-prompt';
+            promptDiv.innerHTML = `
+                <style>
+                    #pwa-install-prompt {
+                        position: fixed;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        background: #1e293b;
+                        color: white;
+                        padding: 16px;
+                        text-align: center;
+                        z-index: 9999;
+                        box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+                    }
+                    .pwa-install-btn {
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin: 0 5px;
+                        font-weight: bold;
+                    }
+                    .pwa-install-btn:hover {
+                        background: #2563eb;
+                    }
+                    .pwa-close-btn {
+                        background: #6b7280;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin: 0 5px;
+                    }
+                </style>
+                <p>Instalo aplikacionin në Home Screen!</p>
+                <button class="pwa-install-btn" id="pwa-btn-install">Instalo</button>
+                <button class="pwa-close-btn" id="pwa-btn-close">Mbyll</button>
+            `;
+            document.body.appendChild(promptDiv);
+
+            document.getElementById('pwa-btn-install').addEventListener('click', () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(choiceResult => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        } else {
+                            console.log('User dismissed the install prompt');
+                        }
+                        deferredPrompt = null;
+                        promptDiv.remove();
+                    });
+                }
+            });
+
+            document.getElementById('pwa-btn-close').addEventListener('click', () => {
+                promptDiv.remove();
+            });
+
+            // Auto-hide after 5 seconds on mobile
+            if (window.innerWidth < 768) {
+                setTimeout(() => {
+                    if (promptDiv.parentElement) {
+                        promptDiv.style.transition = 'opacity 0.3s ease';
+                        promptDiv.style.opacity = '0';
+                        setTimeout(() => promptDiv.remove(), 300);
+                    }
+                }, 5000);
+            }
+        }
+    </script>
 </body>
 </html>

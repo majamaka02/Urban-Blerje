@@ -1,5 +1,9 @@
 Flask>=3.0
 Flask-SQLAlchemy>=3.0
+Flask-WTF>=1.1.0
+python-dotenv>=0.19.0
 openpyxl
 reportlab
 gunicorn
+Flask-Migrate>=4.0
+psycopg2-binary>=2.9

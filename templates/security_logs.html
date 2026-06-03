@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>🔒 Logjet e Sigurisë - Login Attempts</h1>
+    <p>Monitori të gjitha përpjekjet për hyrje (të suksesshme dhe të dështuara). Përdorni filtrat për të gjetur hyrje specifike.</p>
+
+    <form method="GET" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <input type="text" name="username" placeholder="Filtro sipas përdoruesit" value="{{ username_filter or '' }}">
+        <select name="result">
+            <option value="all" {% if result_filter == 'all' %}selected{% endif %}>Të gjitha</option>
+            <option value="failed" {% if result_filter == 'failed' %}selected{% endif %}>Të dështuara</option>
+            <option value="success" {% if result_filter == 'success' %}selected{% endif %}>Sukses</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Filtro</button>
+    </form>
+    
+    <!-- Statistics -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div class="card" style="background: #f0f9ff; border-left: 4px solid #3b82f6;">
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">TOTAL ATTEMPTS</div>
+            <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{ total_attempts }}</div>
+        </div>
+        <div class="card" style="background: #fef2f2; border-left: 4px solid #ef4444;">
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">FAILED (24H)</div>
+            <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{ failed_today }}</div>
+        </div>
+        <div class="card" style="background: #f0fdf4; border-left: 4px solid #10b981;">
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">SECURITY STATUS</div>
+            <div style="font-size: 14px; font-weight: bold; color: #10b981;">
+                {% if failed_today > 10 %}⚠️ WARNING{% elif failed_today > 5 %}⚠️ CAUTION{% else %}✅ NORMAL{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Attempts Table -->
+    <h2 style="font-size: 16px; margin-top: 20px; margin-bottom: 12px;">Login Attempts</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>IP Address</th>
+                    <th>Timestamp</th>
+                    <th>Browser/Device</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if attempts.items %}
+                    {% for attempt in attempts.items %}
+                    <tr style="background-color: {% if attempt.success %}#ecfdf5{% else %}#fee2e2{% endif %};">
+                        <td><strong>{{ attempt.username }}</strong></td>
+                        <td>
+                            <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 12px;">
+                                {{ attempt.ip_address or 'Unknown' }}
+                            </code>
+                        </td>
+                        <td>{{ attempt.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td style="font-size: 12px; color: #64748b;">
+                            {{ attempt.user_agent[:80] if attempt.user_agent else 'Unknown' }}
+                        </td>
+                        <td style="font-weight: bold; color: {% if attempt.success %}#065f46{% else %}#991b1b{% endif %};">{% if attempt.success %}Success{% else %}Failed{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #64748b; padding: 30px;">
+                            ✅ No login attempts matching the filter
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if attempts.pages > 1 %}
+    <div style="display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap;">
+        {% if attempts.has_prev %}
+        <a href="?page={{ attempts.prev_num }}&username={{ username_filter or '' }}&result={{ result_filter }}" class="btn btn-primary">← Previous</a>
+        {% endif %}
+        
+        <div style="display: flex; gap: 4px; align-items: center;">
+            {% for page_num in attempts.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == attempts.page %}
+                    <button class="btn" style="background: #3b82f6; cursor: default;">{{ page_num }}</button>
+                    {% else %}
+                    <a href="?page={{ page_num }}&username={{ username_filter or '' }}&result={{ result_filter }}" class="btn" style="text-decoration: none; background: #e2e8f0;">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                <span style="padding: 8px 4px;">...</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if attempts.has_next %}
+        <a href="?page={{ attempts.next_num }}&username={{ username_filter or '' }}&result={{ result_filter }}" class="btn btn-primary">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Security Tips -->
+    <div class="card" style="background: #fef3c7; border-left: 4px solid #f59e0b; margin-top: 20px;">
+        <h3 style="margin-top: 0; color: #92400e;">🛡️ Security Tips</h3>
+        <ul style="margin: 10px 0; padding-left: 20px; color: #92400e;">
+            <li>🔒 Use strong passwords (min. 6 characters recommended)</li>
+            <li>🚫 Rate limiting active: 5 attempts max, 60 seconds lockout</li>
+            <li>📱 Enable PWA for app-like security features</li>
+            <li>🔐 Session expires after 24 hours of inactivity</li>
+            <li>👁️ Monitor this page regularly for suspicious activity</li>
+            <li>⚠️ Multiple failed attempts from same IP = potential attack</li>
+        </ul>
+    </div>
+
+    <!-- Security Settings -->
+    <div class="card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">⚙️ Security Configuration</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-weight: bold;">Max Login Attempts</td>
+                <td style="padding: 8px;">5</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-weight: bold;">Lockout Duration</td>
+                <td style="padding: 8px;">60 seconds</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-weight: bold;">Session Timeout</td>
+                <td style="padding: 8px;">24 hours</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-weight: bold;">Password Hashing</td>
+                <td style="padding: 8px;">✅ PBKDF2 (Werkzeug)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-weight: bold;">HTTPS/TLS</td>
+                <td style="padding: 8px;">✅ Enforced</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-weight: bold;">CSRF Protection</td>
+                <td style="padding: 8px;">✅ Enabled (SameSite=Strict)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-weight: bold;">SQL Injection Protection</td>
+                <td style="padding: 8px;">✅ SQLAlchemy ORM</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; font-weight: bold;">XSS Protection</td>
+                <td style="padding: 8px;">✅ Security Headers</td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="margin-top: 20px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981; color: #065f46;">
+        <strong>Last Updated:</strong> {{ 'now' | datetime }}
+    </div>
+</div>
+
+<style>
+    code {
+        font-family: 'Courier New', monospace;
+    }
+</style>
+{% endblock %}

@@ -4,6 +4,7 @@
 <div class="card">
     <h1>Hyrje</h1>
     <form method="POST" class="login-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="form-group">
             <label>Emri i përdoruesit</label>
             <input type="text" name="username" required placeholder="Emri i përdoruesit...">
@@ -14,5 +15,29 @@
         </div>
         <button type="submit" class="btn btn-primary">Hyr</button>
     </form>
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <button type="button" id="btnInstall" class="btn btn-secondary">Instalo aplikacionin (Desktop)</button>
+        <small class="meta">Nëse shfletuesi juaj e mbështet PWA, klikoni për të instaluar.</small>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+        const btn = document.getElementById('btnInstall');
+        if(!btn) return;
+        btn.addEventListener('click', function(){
+            if(window.deferredPrompt){
+                window.deferredPrompt.prompt();
+                window.deferredPrompt.userChoice.then(function(choice){
+                    window.deferredPrompt = null;
+                });
+            } else if (typeof showInstallPrompt === 'function'){
+                // Show the fallback install prompt UI defined in base.html
+                showInstallPrompt();
+            } else {
+                alert('Për të instaluar: përdorni menyun e shfletuesit dhe zgjidhni "Install" ose "Add to desktop".');
+            }
+        });
+    });
+    </script>
 </div>
 {% endblock %}

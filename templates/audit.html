@@ -6,8 +6,25 @@
     <p>Regjistri i veprimeve — shihni kush, kur dhe çfarë bëri.</p>
 </div>
 
-<div class="card">
-    <div class="meta small">Gjithsej: {{ total }} ngjarje</div>
+<div class="card no-print" style="margin-bottom:12px;">
+    <form method="GET" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <label style="margin-right:6px;">Filtro:</label>
+        <select name="user">
+            <option value="">Të gjithë përdoruesit</option>
+            {% for uname in distinct_users %}
+            <option value="{{ uname }}" {% if user_filter == uname %}selected{% endif %}>{{ uname }}</option>
+            {% endfor %}
+        </select>
+        <select name="action">
+            <option value="">Të gjitha veprimet</option>
+            <option value="CREATE" {% if action_filter == 'CREATE' %}selected{% endif %}>CREATE</option>
+            <option value="UPDATE" {% if action_filter == 'UPDATE' %}selected{% endif %}>UPDATE</option>
+            <option value="DELETE" {% if action_filter == 'DELETE' %}selected{% endif %}>DELETE</option>
+            <option value="EXPORT" {% if action_filter == 'EXPORT' %}selected{% endif %}>EXPORT</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Apliko</button>
+        <div style="margin-left:auto;" class="meta small">Gjithsej: {{ total }} ngjarje</div>
+    </form>
 </div>
 
 <div class="audit-list">

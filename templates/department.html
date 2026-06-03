@@ -17,6 +17,7 @@
 <div class="card no-print">
     {% if is_admin %}
     <form method="POST" class="add-form inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="form-group">
             <label>Klienti (zgjidh ose shtyp të ri):</label>
             <select name="client_id">

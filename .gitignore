@@ -1,6 +1,9 @@
 ﻿.venv/
+venv/
+env/
 __pycache__/
 *.pyc
-instance/
-*.db
+instance/stoku.db
+backups/
 .env
+.DS_Store

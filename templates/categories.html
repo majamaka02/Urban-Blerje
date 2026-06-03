@@ -9,6 +9,7 @@
 <div class="card no-print">
     {% if is_admin %}
     <form method="POST" class="add-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="form-group">
             <label>Reparti:</label>
             <select name="department_id" required>
@@ -81,6 +82,7 @@
 <div class="card no-print">
     {% if is_admin %}
     <form method="POST" class="add-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="form-group">
             <label>Emri i Klientit:</label>
             <input type="text" name="client_name" placeholder="Emri i klientit...">
@@ -115,6 +117,9 @@
                     <strong>{{ c.name }}</strong>
                     {% if is_super %}
                     <a href="{{ url_for('delete_client', client_id=c.id) }}" class="btn-icon delete-btn" data-name="{{ c.name }}" title="Fshi klientin">🗑</a>
+                    {% endif %}
+                    {% if is_admin %}
+                    <a href="{{ url_for('complete_client', client_id=c.id) }}" class="btn-icon complete-btn" data-name="{{ c.name }}" title="Perfundo Klientin">✅</a>
                     {% endif %}
                     {% if c.created_by or c.created_at %}
                     <div class="meta small">Krijuar nga {{ c.created_by or '-' }}{% if c.created_at %} më {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
@@ -171,6 +176,18 @@ document.addEventListener('DOMContentLoaded', function(){
             e.preventDefault();
             var name = btn.getAttribute('data-name') || 'artikullin';
             var ok = confirm('A jeni i sigurt ta fshini ' + name + ' nga lista?');
+            if(ok){
+                window.location.href = btn.href;
+            }
+        });
+    });
+
+    // complete client confirmation
+    document.querySelectorAll('.complete-btn').forEach(function(btn){
+        btn.addEventListener('click', function(e){
+            e.preventDefault();
+            var name = btn.getAttribute('data-name') || 'klientin';
+            var ok = confirm('A jeni i sigurt ta përfundoni klientin ' + name + '? Kjo do të arkivojë të gjitha blerjet dhe do t\'i heqë nga lista aktive.');
             if(ok){
                 window.location.href = btn.href;
             }

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header no-print">
+    <h1>Klienti: {{ client.name }}</h1>
+    <p>Kategoria: {{ client.category or '-' }} — Përfunduar nga: {{ client.completed_by or '-' }} më {{ client.completed_at.strftime('%Y-%m-%d %H:%M') if client.completed_at else '-' }}</p>
+</div>
+
+<div class="card">
+    <h3>Materialet e arkivuara për këtë klient</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Materiali</th><th>Sasia</th><th>Njësia</th><th>Departamenti</th><th>Shënim</th></tr>
+            </thead>
+            <tbody>
+                {% for it in items %}
+                <tr>
+                    <td>{{ it.material_name }}</td>
+                    <td>{{ it.quantity }}</td>
+                    <td>{{ it.unit or '-' }}</td>
+                    <td>{{ it.department_id or '-' }}</td>
+                    <td>{{ it.note or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">Nuk ka artikuj të arkivuar për këtë klient.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

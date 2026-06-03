@@ -4,9 +4,17 @@
 <div class="card">
     <h1>Paneli i Administrimit</h1>
     <p>Krijoni përdorues të rinj ose ndryshoni fjalëkalimet e ekzistuesve.</p>
+    
+    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+        <a href="{{ url_for('security_logs') }}" class="btn btn-primary" style="text-decoration: none;">
+            <i class="fa-solid fa-shield"></i> Sigurial - Login Logs
+        </a>
+    </div>
+    
     <div class="card no-print" style="margin-bottom:12px;">
         <h3>Krijo Përdorues të Ri</h3>
         <form method="POST" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="text" name="new_username" placeholder="Emri i përdoruesit" required>
             <input type="password" name="new_password_create" placeholder="Fjalëkalimi" required>
             <select name="new_role">
@@ -21,22 +29,42 @@
     <div class="table-container">
         <table>
             <thead>
-                <tr><th>Përdoruesi</th><th>Roli</th><th>Ndrysho Fjalëkalimin</th></tr>
+                <tr><th>Përdoruesi</th><th>Roli</th><th>Ndrysho Fjalëkalimin</th><th>Veprime (Superadmin)</th></tr>
             </thead>
             <tbody>
                 {% for u in users %}
                 <tr>
                     <td>{{ u.username }}</td>
-                        <td>{% if u.is_super %}Superadmin{% elif u.is_admin %}Admin{% else %}Viewer{% endif %}</td>
+                    <td>{% if u.is_super %}Superadmin{% elif u.is_admin %}Admin{% else %}Viewer{% endif %}</td>
                     <td>
                         {% if is_super or current_user_id == u.id %}
                         <form method="POST" style="display:inline-flex;gap:8px;align-items:center;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <input type="hidden" name="user_id" value="{{ u.id }}">
                             <input type="password" name="new_password" placeholder="Fjalëkalimi i ri" required>
                             <button type="submit" class="btn btn-primary">Ruaj</button>
                         </form>
                         {% else %}
                         <span class="small muted">Vetëm Superadmin mund të ndryshojë fjalëkalimin e të tjerëve</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if is_super %}
+                        <form method="POST" style="display:inline-flex;gap:6px;align-items:center;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="hidden" name="change_role_user_id" value="{{ u.id }}">
+                            <select name="new_role_for_user">
+                                <option value="viewer" {% if not u.is_admin and not u.is_super %}selected{% endif %}>Viewer</option>
+                                <option value="admin" {% if u.is_admin and not u.is_super %}selected{% endif %}>Admin</option>
+                                <option value="super" {% if u.is_super %}selected{% endif %}>Super</option>
+                            </select>
+                            <button type="submit" class="btn">Ruaj</button>
+                        </form>
+                        <form method="POST" style="display:inline;" onsubmit="return confirm('A jeni i sigurt ta fshini përdoruesin {{ u.username }}?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="hidden" name="delete_user_id" value="{{ u.id }}">
+                            <button type="submit" class="btn btn-danger">🗑</button>
+                        </form>
                         {% endif %}
                     </td>
                 </tr>

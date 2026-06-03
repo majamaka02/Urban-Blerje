@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header no-print">
+    <h1>Klientet e Përfunduar</h1>
+    <p>Lista e klientëve të arkivuar pas përfundimit të blerjeve.</p>
+</div>
+
+<div class="card no-print" style="margin-bottom:12px;">
+    <form method="GET" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" name="name" placeholder="Filtro sipas emrit" value="{{ name_filter or '' }}">
+        <button type="submit" class="btn btn-primary">Filtro</button>
+        <div style="margin-left:auto;" class="meta small">Gjithsej: {{ total }} klientë</div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr><th>Emri</th><th>Kategoria</th><th>Përfunduar nga</th><th>Data</th><th>Veprime</th></tr>
+        </thead>
+        <tbody>
+            {% for c in clients %}
+            <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.category or '-' }}</td>
+                <td>{{ c.completed_by or '-' }}</td>
+                <td>{{ c.completed_at.strftime('%Y-%m-%d %H:%M') if c.completed_at else '-' }}</td>
+                <td><a href="{{ url_for('completed_client_detail', comp_id=c.id) }}" class="btn btn-link">Shiko Detajet</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">Nuk ka klientë të përfunduar.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination no-print">
+    {% if has_prev %}
+    <a class="btn btn-link" href="?page={{ page-1 }}&name={{ name_filter or '' }}">« Më parë</a>
+    {% endif %}
+    {% if has_next %}
+    <a class="btn btn-link" href="?page={{ page+1 }}&name={{ name_filter or '' }}">Më shumë »</a>
+    {% endif %}
+</div>
+
+{% endblock %}
