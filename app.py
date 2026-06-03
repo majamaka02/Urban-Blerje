@@ -43,6 +43,20 @@ try:
 except Exception as _e:
     print('Error while listing templates:', _e)
 
+
+@app.route('/_debug_templates')
+def debug_templates():
+    """Return JSON with template folder info and file list for runtime debugging."""
+    try:
+        tpl_dir = BASE_DIR / 'templates'
+        exists = tpl_dir.exists()
+        files = []
+        if exists:
+            files = sorted([p.name for p in tpl_dir.iterdir() if p.is_file()])
+        return jsonify({'base_dir': str(BASE_DIR), 'template_folder': app.template_folder, 'exists': exists, 'files': files})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ===== SECURITY CONFIGURATION =====
 # Use environment variables for sensitive config
 app.secret_key = os.getenv('SECRET_KEY', 'dev_secret_change_me_in_production')
